@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Battle Royale MAX</title>
+<style>
+body {
+  margin:0;
+  background:#111;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+}
+h1 {color:orange}
+canvas {
+  background:#263c2b;
+  border:3px solid orange;
+  max-width:100%;
+}
+button {
+  padding:12px;
+  margin:5px;
+  background:orange;
+  border:0;
+  border-radius:8px;
+  font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<h1>🔥 BATTLE ROYALE MAX</h1>
+<p>Score: <span id="score">0</span> |
+Health: <span id="health">100</span></p>
+
+<canvas id="game" width="600" height="450"></canvas>
+<br>
+<button onclick="move(-1,0)">⬅ LEFT</button>
+<button onclick="move(0,-1)">⬆ UP</button>
+<button onclick="move(0,1)">⬇ DOWN</button>
+<button onclick="move(1,0)">RIGHT ➡</button>
+<button onclick="shoot()">🔫 FIRE</button>
+<button onclick="restart()">RESTART</button>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let player,enemies,bullets,score,health,gameOver;
+
+function restart(){
+ player={x:300,y:220,size:18};
+ enemies=[];
+ bullets=[];
+ score=0;
+ health=100;
+ gameOver=false;
+ for(let i=0;i<5;i++) spawnEnemy();
+ update();
+}
+
+function spawnEnemy(){
+ enemies.push({
+  x:Math.random()*550+25,
+  y:Math.random()*400+25,
+  size:16
+ });
+}
+
+function move(dx,dy){
+ if(gameOver)return;
+ player.x=Math.max(18,Math.min(582,player.x+dx*20));
+ player.y=Math.max(18,Math.min(432,player.y+dy*20));
+}
+
+function shoot(){
+ if(gameOver)return;
+ let target=enemies[0];
+ if(!target)return;
+ let dx=target.x-player.x;
+ let dy=target.y-player.y;
+ let d=Math.hypot(dx,dy)||1;
+ bullets.push({
+  x:player.x,y:player.y,
+  vx:dx/d*9,vy:dy/d*9
+ });
+}
+
+function update(){
+ ctx.clearRect(0,0,600,450);
+
+ // Arena
+ ctx.fillStyle="#315a38";
+ ctx.fillRect(0,0,600,450);
+
+ // Player
+ ctx.fillStyle="#00cfff";
+ ctx.beginPath();
+ ctx.arc(player.x,player.y,player.size,0,Math.PI*2);
+ ctx.fill();
+
+ // Enemies
+ enemies.forEach(e=>{
+  let dx=player.x-e.x;
+  let dy=player.y-e.y;
+  let d=Math.hypot(dx,dy)||1;
+  e.x+=dx/d*0.6;
+  e.y+=dy/d*0.6;
+
+  ctx.fillStyle="red";
+  ctx.beginPath();
+  ctx.arc(e.x,e.y,e.size,0,Math.PI*2);
+  ctx.fill();
+
+  if(d<player.size+e.size){
+   health-=0.15;
+  }
+ });
+
+ // Bullets
+ bullets.forEach(b=>{
+  b.x+=b.vx;
+  b.y+=b.vy;
+
+  ctx.fillStyle="yellow";
+  ctx.beginPath();
+  ctx.arc(b.x,b.y,5,0,Math.PI*2);
+  ctx.fill();
+
+  enemies.forEach(e=>{
+   if(Math.hypot(b.x-e.x,b.y-e.y)<e.size+5){
+    e.dead=true;
+    b.dead=true;
+    score+=10;
+   }
+  });
+ });
+
+ enemies=enemies.filter(e=>!e.dead);
+ bullets=bullets.filter(b=>!b.dead&&b.x>0&&b.x<600&&b.y>0&&b.y<450);
+
+ if(enemies.length<5 && !gameOver) spawnEnemy();
+
+ document.getElementById("score").textContent=score;
+ document.getElementById("health").textContent=Math.max(0,Math.floor(health));
+
+ if(health<=0){
+  gameOver=true;
+  ctx.fillStyle="white";
+  ctx.font="40px Arial";
+  ctx.fillText("GAME OVER",190,220);
+  return;
+ }
+
+ if(!gameOver) requestAnimationFrame(update);
+}
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowUp"||e.key==="w")move(0,-1);
+ if(e.key==="ArrowDown"||e.key==="s")move(0,1);
+ if(e.key==="ArrowLeft"||e.key==="a")move(-1,0);
+ if(e.key==="ArrowRight"||e.key==="d")move(1,0);
+ if(e.code==="Space")shoot();
+});
+
+restart();
+</script>
+</body>
+</html>
